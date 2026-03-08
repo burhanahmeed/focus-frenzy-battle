@@ -4,28 +4,46 @@ import { Eye, EyeOff, Clock, AlertTriangle, Crosshair } from 'lucide-react';
 import { formatTime } from '@/lib/game-utils';
 import { usePageVisibility } from '@/hooks/usePageVisibility';
 import { useReactionGame } from '@/hooks/useReactionGame';
-import { ReactionStats } from '@/types/game';
+import { GameMode, GameStats, ReactionStats } from '@/types/game';
 import ReactionTarget from '@/components/ReactionTarget';
+import TypingChallenge from '@/components/games/TypingChallenge';
+import MathBlitz from '@/components/games/MathBlitz';
+import ReadingChallenge from '@/components/games/ReadingChallenge';
+import WordleGame from '@/components/games/WordleGame';
 
 interface FocusArenaProps {
   duration: number;
+  gameMode: GameMode;
   opponentFocused: boolean;
   onLoseFocus: () => void;
   onTimerEnd: () => void;
-  onReactionStats?: (stats: ReactionStats) => void;
+  onGameStats?: (stats: GameStats) => void;
 }
 
-const FocusArena = ({ duration, opponentFocused, onLoseFocus, onTimerEnd, onReactionStats }: FocusArenaProps) => {
+const FocusArena = ({ duration, gameMode, opponentFocused, onLoseFocus, onTimerEnd, onGameStats }: FocusArenaProps) => {
   const [elapsed, setElapsed] = useState(0);
   const { isVisible, leftCount } = usePageVisibility();
   const hasTriggeredLoss = useRef(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const { targets, stats, hitTarget } = useReactionGame(true);
+  const { targets, stats: reactionStats, hitTarget } = useReactionGame(gameMode === 'reaction');
+  const [genericStats, setGenericStats] = useState<GameStats>({ score: 0, accuracy: 0, avgTime: 0 });
 
-  // Report stats up whenever they change
+  // Convert reaction stats to generic stats for the reaction mode
   useEffect(() => {
-    onReactionStats?.(stats);
-  }, [stats, onReactionStats]);
+    if (gameMode === 'reaction') {
+      const total = reactionStats.hits + reactionStats.misses;
+      const accuracy = total > 0 ? Math.round((reactionStats.hits / total) * 100) : 0;
+      const gs: GameStats = { score: reactionStats.hits, accuracy, avgTime: reactionStats.avgReactionTime };
+      setGenericStats(gs);
+      onGameStats?.(gs);
+    }
+  }, [reactionStats, gameMode, onGameStats]);
+
+  // For non-reaction modes, forward stats
+  const handleModeStats = (stats: GameStats) => {
+    setGenericStats(stats);
+    onGameStats?.(stats);
+  };
 
   useEffect(() => {
     intervalRef.current = setInterval(() => {
@@ -54,14 +72,41 @@ const FocusArena = ({ duration, opponentFocused, onLoseFocus, onTimerEnd, onReac
   const progress = (elapsed / duration) * 100;
   const remaining = duration - elapsed;
 
+  const renderGameArea = () => {
+    switch (gameMode) {
+      case 'reaction':
+        return (
+          <>
+            <div className="absolute top-2 left-3 flex items-center gap-1.5 text-muted-foreground">
+              <Crosshair className="w-3 h-3" />
+              <span className="text-[10px] font-mono">CLICK THE TARGETS</span>
+            </div>
+            <div className="absolute top-2 right-3 flex items-center gap-3 text-xs font-mono">
+              <span className="text-primary">{reactionStats.hits} hit{reactionStats.hits !== 1 ? 's' : ''}</span>
+              <span className="text-destructive">{reactionStats.misses} miss</span>
+            </div>
+            {targets.map(t => (
+              <ReactionTarget key={t.id} target={t} onHit={hitTarget} />
+            ))}
+          </>
+        );
+      case 'typing':
+        return <TypingChallenge active={true} onStats={handleModeStats} />;
+      case 'math':
+        return <MathBlitz active={true} onStats={handleModeStats} />;
+      case 'reading':
+        return <ReadingChallenge active={true} onStats={handleModeStats} />;
+      case 'wordle':
+        return <WordleGame active={true} onStats={handleModeStats} />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 relative">
-      {/* Background pulse */}
       <div className="absolute inset-0 bg-grid opacity-30" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/3 rounded-full blur-[150px] pointer-events-none" />
 
       <div className="z-10 w-full max-w-md text-center">
-        {/* Warning banner */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -71,7 +116,6 @@ const FocusArena = ({ duration, opponentFocused, onLoseFocus, onTimerEnd, onReac
           DON'T SWITCH TABS — YOU'LL LOSE
         </motion.div>
 
-        {/* Main timer */}
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -86,7 +130,6 @@ const FocusArena = ({ duration, opponentFocused, onLoseFocus, onTimerEnd, onReac
           </p>
         </motion.div>
 
-        {/* Progress bar */}
         <div className="mt-6 mb-6 w-full h-1.5 bg-secondary rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-primary rounded-full"
@@ -97,19 +140,11 @@ const FocusArena = ({ duration, opponentFocused, onLoseFocus, onTimerEnd, onReac
           />
         </div>
 
-        {/* Reaction target area */}
-        <div className="relative w-full h-[250px] sm:h-[300px] bg-card/50 border border-border rounded-lg mb-6 overflow-hidden">
-          <div className="absolute top-2 left-3 flex items-center gap-1.5 text-muted-foreground">
-            <Crosshair className="w-3 h-3" />
-            <span className="text-[10px] font-mono">CLICK THE TARGETS</span>
-          </div>
-          <div className="absolute top-2 right-3 flex items-center gap-3 text-xs font-mono">
-            <span className="text-primary">{stats.hits} hit{stats.hits !== 1 ? 's' : ''}</span>
-            <span className="text-destructive">{stats.misses} miss</span>
-          </div>
-          {targets.map(t => (
-            <ReactionTarget key={t.id} target={t} onHit={hitTarget} />
-          ))}
+        {/* Game area */}
+        <div className={`relative w-full bg-card/50 border border-border rounded-lg mb-6 overflow-hidden ${
+          gameMode === 'reading' || gameMode === 'wordle' ? 'min-h-[350px]' : 'h-[250px] sm:h-[300px]'
+        }`}>
+          {renderGameArea()}
         </div>
 
         {/* Status cards */}
@@ -137,14 +172,13 @@ const FocusArena = ({ duration, opponentFocused, onLoseFocus, onTimerEnd, onReac
           </div>
         </div>
 
-        {/* Focus tips */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.5 }}
           transition={{ delay: 2 }}
           className="mt-8 text-xs text-muted-foreground font-mono"
         >
-          Click targets to stay sharp. Don't leave this tab.
+          Stay sharp. Don't leave this tab.
         </motion.p>
       </div>
     </div>
