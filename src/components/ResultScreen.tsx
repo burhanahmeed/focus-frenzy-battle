@@ -1,17 +1,18 @@
 import { motion } from 'framer-motion';
-import { Trophy, Skull, Handshake, RotateCcw, Home } from 'lucide-react';
+import { Trophy, Skull, Handshake, RotateCcw, Home, Crosshair, Target, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatTime } from '@/lib/game-utils';
-import { GameResult } from '@/types/game';
+import { GameResult, ReactionStats } from '@/types/game';
 
 interface ResultScreenProps {
   result: GameResult;
   yourTime: number;
   opponentTime: number;
   onRematch: () => void;
+  reactionStats?: ReactionStats;
 }
 
-const ResultScreen = ({ result, yourTime, opponentTime, onRematch }: ResultScreenProps) => {
+const ResultScreen = ({ result, yourTime, opponentTime, onRematch, reactionStats }: ResultScreenProps) => {
   const navigate = useNavigate();
 
   const config = {
@@ -47,6 +48,10 @@ const ResultScreen = ({ result, yourTime, opponentTime, onRematch }: ResultScree
   const c = config[result || 'TIE'];
   const Icon = c.icon;
 
+  const accuracy = reactionStats && (reactionStats.hits + reactionStats.misses) > 0
+    ? Math.round((reactionStats.hits / (reactionStats.hits + reactionStats.misses)) * 100)
+    : 0;
+
   return (
     <div className="min-h-screen bg-background bg-grid flex flex-col items-center justify-center px-4 relative">
       <div className={`absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] ${c.bgGlow} rounded-full blur-[120px] pointer-events-none`} />
@@ -70,8 +75,8 @@ const ResultScreen = ({ result, yourTime, opponentTime, onRematch }: ResultScree
         </h1>
         <p className="text-muted-foreground mb-8">{c.subtitle}</p>
 
-        {/* Stats */}
-        <div className={`bg-card border ${c.borderColor} rounded-lg p-5 mb-6`}>
+        {/* Time Stats */}
+        <div className={`bg-card border ${c.borderColor} rounded-lg p-5 mb-4`}>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs font-mono text-muted-foreground mb-1">YOUR TIME</p>
@@ -83,6 +88,44 @@ const ResultScreen = ({ result, yourTime, opponentTime, onRematch }: ResultScree
             </div>
           </div>
         </div>
+
+        {/* Reaction Stats */}
+        {reactionStats && (reactionStats.hits + reactionStats.misses) > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className={`bg-card border ${c.borderColor} rounded-lg p-5 mb-6`}
+          >
+            <div className="flex items-center justify-center gap-1.5 mb-3">
+              <Crosshair className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs font-mono text-muted-foreground tracking-wider">REACTION STATS</span>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <Target className="w-3 h-3 text-primary" />
+                </div>
+                <p className="font-mono text-xl font-bold text-foreground">{reactionStats.hits}</p>
+                <p className="text-[10px] font-mono text-muted-foreground">HITS</p>
+              </div>
+              <div>
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <Zap className="w-3 h-3 text-warning" />
+                </div>
+                <p className="font-mono text-xl font-bold text-foreground">{reactionStats.avgReactionTime}ms</p>
+                <p className="text-[10px] font-mono text-muted-foreground">AVG TIME</p>
+              </div>
+              <div>
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <Crosshair className="w-3 h-3 text-success" />
+                </div>
+                <p className="font-mono text-xl font-bold text-foreground">{accuracy}%</p>
+                <p className="text-[10px] font-mono text-muted-foreground">ACCURACY</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-3">

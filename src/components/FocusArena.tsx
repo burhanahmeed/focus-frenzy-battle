@@ -1,21 +1,31 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Clock, AlertTriangle } from 'lucide-react';
+import { Eye, EyeOff, Clock, AlertTriangle, Crosshair } from 'lucide-react';
 import { formatTime } from '@/lib/game-utils';
 import { usePageVisibility } from '@/hooks/usePageVisibility';
+import { useReactionGame } from '@/hooks/useReactionGame';
+import { ReactionStats } from '@/types/game';
+import ReactionTarget from '@/components/ReactionTarget';
 
 interface FocusArenaProps {
   duration: number;
   opponentFocused: boolean;
   onLoseFocus: () => void;
   onTimerEnd: () => void;
+  onReactionStats?: (stats: ReactionStats) => void;
 }
 
-const FocusArena = ({ duration, opponentFocused, onLoseFocus, onTimerEnd }: FocusArenaProps) => {
+const FocusArena = ({ duration, opponentFocused, onLoseFocus, onTimerEnd, onReactionStats }: FocusArenaProps) => {
   const [elapsed, setElapsed] = useState(0);
   const { isVisible, leftCount } = usePageVisibility();
   const hasTriggeredLoss = useRef(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { targets, stats, hitTarget } = useReactionGame(true);
+
+  // Report stats up whenever they change
+  useEffect(() => {
+    onReactionStats?.(stats);
+  }, [stats, onReactionStats]);
 
   useEffect(() => {
     intervalRef.current = setInterval(() => {
@@ -55,7 +65,7 @@ const FocusArena = ({ duration, opponentFocused, onLoseFocus, onTimerEnd }: Focu
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8 flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-warning/10 border border-warning/20 text-warning text-xs font-mono"
+          className="mb-6 flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-warning/10 border border-warning/20 text-warning text-xs font-mono"
         >
           <AlertTriangle className="w-3 h-3" />
           DON'T SWITCH TABS — YOU'LL LOSE
@@ -77,7 +87,7 @@ const FocusArena = ({ duration, opponentFocused, onLoseFocus, onTimerEnd }: Focu
         </motion.div>
 
         {/* Progress bar */}
-        <div className="mt-8 mb-10 w-full h-1.5 bg-secondary rounded-full overflow-hidden">
+        <div className="mt-6 mb-6 w-full h-1.5 bg-secondary rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-primary rounded-full"
             initial={{ width: 0 }}
@@ -85,6 +95,21 @@ const FocusArena = ({ duration, opponentFocused, onLoseFocus, onTimerEnd }: Focu
             transition={{ duration: 0.5 }}
             style={{ boxShadow: 'var(--glow-primary)' }}
           />
+        </div>
+
+        {/* Reaction target area */}
+        <div className="relative w-full h-[250px] sm:h-[300px] bg-card/50 border border-border rounded-lg mb-6 overflow-hidden">
+          <div className="absolute top-2 left-3 flex items-center gap-1.5 text-muted-foreground">
+            <Crosshair className="w-3 h-3" />
+            <span className="text-[10px] font-mono">CLICK THE TARGETS</span>
+          </div>
+          <div className="absolute top-2 right-3 flex items-center gap-3 text-xs font-mono">
+            <span className="text-primary">{stats.hits} hit{stats.hits !== 1 ? 's' : ''}</span>
+            <span className="text-destructive">{stats.misses} miss</span>
+          </div>
+          {targets.map(t => (
+            <ReactionTarget key={t.id} target={t} onHit={hitTarget} />
+          ))}
         </div>
 
         {/* Status cards */}
@@ -117,9 +142,9 @@ const FocusArena = ({ duration, opponentFocused, onLoseFocus, onTimerEnd }: Focu
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.5 }}
           transition={{ delay: 2 }}
-          className="mt-10 text-xs text-muted-foreground font-mono"
+          className="mt-8 text-xs text-muted-foreground font-mono"
         >
-          Breathe. Stay present. You've got this.
+          Click targets to stay sharp. Don't leave this tab.
         </motion.p>
       </div>
     </div>
