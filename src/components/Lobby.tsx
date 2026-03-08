@@ -102,17 +102,19 @@ const Lobby = ({ roomId, playerCount, isReady, opponentReady, selectedDuration, 
           <div className="flex items-center gap-2 mb-3">
             <Crosshair className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground font-mono">GAME MODE</span>
+            {!isHost && <span className="text-[10px] font-mono text-muted-foreground/60 ml-auto">Host picks</span>}
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {GAME_MODES.map((mode) => (
               <button
                 key={mode.id}
-                onClick={() => onSelectMode(mode.id)}
+                onClick={() => isHost ? onSelectMode(mode.id) : undefined}
+                disabled={!isHost}
                 className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-lg text-center transition-all ${
                   selectedMode === mode.id
                     ? 'bg-primary text-primary-foreground glow-primary'
                     : 'bg-secondary text-secondary-foreground hover:border-primary/30 border border-border'
-                }`}
+                } ${!isHost ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
                 {MODE_ICONS[mode.id]}
                 <span className="text-xs font-mono font-semibold">{mode.label}</span>
