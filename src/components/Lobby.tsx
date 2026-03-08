@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
-import { Copy, Check, Clock, Shield } from 'lucide-react';
+import { Copy, Check, Clock, Shield, Crosshair, Keyboard, Calculator, BookOpen, Grid3x3 } from 'lucide-react';
 import { useState } from 'react';
+import { GameMode, GAME_MODES } from '@/types/game';
 
 interface LobbyProps {
   roomId: string;
@@ -8,8 +9,10 @@ interface LobbyProps {
   isReady: boolean;
   opponentReady: boolean;
   selectedDuration: number;
+  selectedMode: GameMode;
   onToggleReady: () => void;
   onSelectDuration: (seconds: number) => void;
+  onSelectMode: (mode: GameMode) => void;
 }
 
 const DURATIONS = [
@@ -19,7 +22,15 @@ const DURATIONS = [
   { label: '10 min', value: 600 },
 ];
 
-const Lobby = ({ roomId, playerCount, isReady, opponentReady, selectedDuration, onToggleReady, onSelectDuration }: LobbyProps) => {
+const MODE_ICONS: Record<GameMode, React.ReactNode> = {
+  reaction: <Crosshair className="w-5 h-5" />,
+  typing: <Keyboard className="w-5 h-5" />,
+  math: <Calculator className="w-5 h-5" />,
+  reading: <BookOpen className="w-5 h-5" />,
+  wordle: <Grid3x3 className="w-5 h-5" />,
+};
+
+const Lobby = ({ roomId, playerCount, isReady, opponentReady, selectedDuration, selectedMode, onToggleReady, onSelectDuration, onSelectMode }: LobbyProps) => {
   const [copied, setCopied] = useState(false);
 
   const copyCode = () => {
@@ -38,7 +49,7 @@ const Lobby = ({ roomId, playerCount, isReady, opponentReady, selectedDuration, 
         className="w-full max-w-md z-10"
       >
         {/* Room code */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <p className="text-muted-foreground text-sm font-mono mb-2 tracking-wider">ROOM CODE</p>
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -82,6 +93,35 @@ const Lobby = ({ roomId, playerCount, isReady, opponentReady, selectedDuration, 
                 </>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Game mode selection */}
+        <div className="bg-card border border-border rounded-lg p-5 mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Crosshair className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground font-mono">GAME MODE</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {GAME_MODES.map((mode) => (
+              <button
+                key={mode.id}
+                onClick={() => onSelectMode(mode.id)}
+                className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-lg text-center transition-all ${
+                  selectedMode === mode.id
+                    ? 'bg-primary text-primary-foreground glow-primary'
+                    : 'bg-secondary text-secondary-foreground hover:border-primary/30 border border-border'
+                }`}
+              >
+                {MODE_ICONS[mode.id]}
+                <span className="text-xs font-mono font-semibold">{mode.label}</span>
+                <span className={`text-[9px] leading-tight ${
+                  selectedMode === mode.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                }`}>
+                  {mode.description}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
 

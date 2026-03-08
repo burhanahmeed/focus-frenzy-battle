@@ -1,18 +1,19 @@
 import { motion } from 'framer-motion';
-import { Trophy, Skull, Handshake, RotateCcw, Home, Crosshair, Target, Zap } from 'lucide-react';
+import { Trophy, Skull, Handshake, RotateCcw, Home, Target, Zap, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatTime } from '@/lib/game-utils';
-import { GameResult, ReactionStats } from '@/types/game';
+import { GameResult, GameStats, GameMode, GAME_MODES } from '@/types/game';
 
 interface ResultScreenProps {
   result: GameResult;
   yourTime: number;
   opponentTime: number;
   onRematch: () => void;
-  reactionStats?: ReactionStats;
+  gameStats?: GameStats;
+  gameMode?: GameMode;
 }
 
-const ResultScreen = ({ result, yourTime, opponentTime, onRematch, reactionStats }: ResultScreenProps) => {
+const ResultScreen = ({ result, yourTime, opponentTime, onRematch, gameStats, gameMode }: ResultScreenProps) => {
   const navigate = useNavigate();
 
   const config = {
@@ -47,10 +48,7 @@ const ResultScreen = ({ result, yourTime, opponentTime, onRematch, reactionStats
 
   const c = config[result || 'TIE'];
   const Icon = c.icon;
-
-  const accuracy = reactionStats && (reactionStats.hits + reactionStats.misses) > 0
-    ? Math.round((reactionStats.hits / (reactionStats.hits + reactionStats.misses)) * 100)
-    : 0;
+  const modeLabel = gameMode ? GAME_MODES.find(m => m.id === gameMode)?.label || gameMode : 'Game';
 
   return (
     <div className="min-h-screen bg-background bg-grid flex flex-col items-center justify-center px-4 relative">
@@ -89,8 +87,8 @@ const ResultScreen = ({ result, yourTime, opponentTime, onRematch, reactionStats
           </div>
         </div>
 
-        {/* Reaction Stats */}
-        {reactionStats && (reactionStats.hits + reactionStats.misses) > 0 && (
+        {/* Game Stats */}
+        {gameStats && gameStats.score > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -98,29 +96,29 @@ const ResultScreen = ({ result, yourTime, opponentTime, onRematch, reactionStats
             className={`bg-card border ${c.borderColor} rounded-lg p-5 mb-6`}
           >
             <div className="flex items-center justify-center gap-1.5 mb-3">
-              <Crosshair className="w-3.5 h-3.5 text-primary" />
-              <span className="text-xs font-mono text-muted-foreground tracking-wider">REACTION STATS</span>
+              <BarChart3 className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs font-mono text-muted-foreground tracking-wider">{modeLabel.toUpperCase()} STATS</span>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <div className="flex items-center justify-center gap-1 mb-1">
                   <Target className="w-3 h-3 text-primary" />
                 </div>
-                <p className="font-mono text-xl font-bold text-foreground">{reactionStats.hits}</p>
-                <p className="text-[10px] font-mono text-muted-foreground">HITS</p>
+                <p className="font-mono text-xl font-bold text-foreground">{gameStats.score}</p>
+                <p className="text-[10px] font-mono text-muted-foreground">SCORE</p>
               </div>
               <div>
                 <div className="flex items-center justify-center gap-1 mb-1">
                   <Zap className="w-3 h-3 text-warning" />
                 </div>
-                <p className="font-mono text-xl font-bold text-foreground">{reactionStats.avgReactionTime}ms</p>
+                <p className="font-mono text-xl font-bold text-foreground">{gameStats.avgTime}ms</p>
                 <p className="text-[10px] font-mono text-muted-foreground">AVG TIME</p>
               </div>
               <div>
                 <div className="flex items-center justify-center gap-1 mb-1">
-                  <Crosshair className="w-3 h-3 text-success" />
+                  <BarChart3 className="w-3 h-3 text-success" />
                 </div>
-                <p className="font-mono text-xl font-bold text-foreground">{accuracy}%</p>
+                <p className="font-mono text-xl font-bold text-foreground">{gameStats.accuracy}%</p>
                 <p className="text-[10px] font-mono text-muted-foreground">ACCURACY</p>
               </div>
             </div>

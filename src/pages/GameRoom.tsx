@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { GameState, GameResult, ReactionStats } from '@/types/game';
+import { GameState, GameResult, GameMode, GameStats } from '@/types/game';
 import Lobby from '@/components/Lobby';
 import CountdownOverlay from '@/components/CountdownOverlay';
 import FocusArena from '@/components/FocusArena';
@@ -11,12 +11,13 @@ const GameRoom = () => {
   const [gameState, setGameState] = useState<GameState>('LOBBY');
   const [isReady, setIsReady] = useState(false);
   const [duration, setDuration] = useState(60);
+  const [gameMode, setGameMode] = useState<GameMode>('reaction');
   const [countdownValue, setCountdownValue] = useState(3);
   const [result, setResult] = useState<GameResult>(null);
   const [yourTime, setYourTime] = useState(0);
   const [opponentTime, setOpponentTime] = useState(0);
   const [opponentFocused, setOpponentFocused] = useState(true);
-  const [reactionStats, setReactionStats] = useState<ReactionStats>({ hits: 0, misses: 0, avgReactionTime: 0 });
+  const [gameStats, setGameStats] = useState<GameStats>({ score: 0, accuracy: 0, avgTime: 0 });
   const gameStartRef = useRef<number>(0);
 
   const [playerCount, setPlayerCount] = useState(1);
@@ -29,9 +30,7 @@ const GameRoom = () => {
 
   useEffect(() => {
     if (isReady && playerCount >= 2) {
-      const t = setTimeout(() => {
-        setOpponentReady(true);
-      }, 1500);
+      const t = setTimeout(() => setOpponentReady(true), 1500);
       return () => clearTimeout(t);
     }
   }, [isReady, playerCount]);
@@ -45,7 +44,6 @@ const GameRoom = () => {
 
   useEffect(() => {
     if (gameState !== 'COUNTDOWN') return;
-
     if (countdownValue <= 0) {
       const timeout = setTimeout(() => {
         setGameState('ACTIVE');
@@ -53,11 +51,7 @@ const GameRoom = () => {
       }, 800);
       return () => clearTimeout(timeout);
     }
-
-    const timeout = setTimeout(() => {
-      setCountdownValue(prev => prev - 1);
-    }, 1000);
-
+    const timeout = setTimeout(() => setCountdownValue(prev => prev - 1), 1000);
     return () => clearTimeout(timeout);
   }, [gameState, countdownValue]);
 
@@ -66,8 +60,7 @@ const GameRoom = () => {
     const opponentLoseTime = 15000 + Math.random() * (duration * 1000 - 15000);
     const t = setTimeout(() => {
       setOpponentFocused(false);
-      const opTime = Math.floor(opponentLoseTime / 1000);
-      setOpponentTime(opTime);
+      setOpponentTime(Math.floor(opponentLoseTime / 1000));
     }, opponentLoseTime);
     return () => clearTimeout(t);
   }, [gameState, duration]);
@@ -97,10 +90,9 @@ const GameRoom = () => {
   }, [opponentFocused, gameState]);
 
   const handleTimerEnd = useCallback(() => {
-    const elapsed = duration;
-    setYourTime(elapsed);
+    setYourTime(duration);
     if (opponentFocused) {
-      setOpponentTime(elapsed);
+      setOpponentTime(duration);
       setResult('TIE');
     } else {
       setResult('WIN');
@@ -117,7 +109,7 @@ const GameRoom = () => {
     setOpponentTime(0);
     setOpponentFocused(true);
     setCountdownValue(3);
-    setReactionStats({ hits: 0, misses: 0, avgReactionTime: 0 });
+    setGameStats({ score: 0, accuracy: 0, avgTime: 0 });
   };
 
   if (!roomId) return null;
@@ -132,8 +124,10 @@ const GameRoom = () => {
           isReady={isReady}
           opponentReady={opponentReady}
           selectedDuration={duration}
+          selectedMode={gameMode}
           onToggleReady={() => setIsReady(prev => !prev)}
           onSelectDuration={setDuration}
+          onSelectMode={setGameMode}
         />
       );
 
@@ -144,10 +138,11 @@ const GameRoom = () => {
       return (
         <FocusArena
           duration={duration}
+          gameMode={gameMode}
           opponentFocused={opponentFocused}
           onLoseFocus={handleLoseFocus}
           onTimerEnd={handleTimerEnd}
-          onReactionStats={setReactionStats}
+          onGameStats={setGameStats}
         />
       );
 
@@ -158,7 +153,8 @@ const GameRoom = () => {
           yourTime={yourTime}
           opponentTime={opponentTime}
           onRematch={handleRematch}
-          reactionStats={reactionStats}
+          gameStats={gameStats}
+          gameMode={gameMode}
         />
       );
 
