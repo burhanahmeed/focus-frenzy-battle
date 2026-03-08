@@ -133,17 +133,19 @@ const Lobby = ({ roomId, playerCount, isReady, opponentReady, selectedDuration, 
           <div className="flex items-center gap-2 mb-3">
             <Clock className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground font-mono">DURATION</span>
+            {!isHost && <span className="text-[10px] font-mono text-muted-foreground/60 ml-auto">Host picks</span>}
           </div>
           <div className="grid grid-cols-4 gap-2">
             {DURATIONS.map(({ label, value }) => (
               <button
                 key={value}
-                onClick={() => onSelectDuration(value)}
+                onClick={() => isHost ? onSelectDuration(value) : undefined}
+                disabled={!isHost}
                 className={`py-2 px-3 rounded-md text-sm font-mono transition-all ${
                   selectedDuration === value
                     ? 'bg-primary text-primary-foreground glow-primary'
                     : 'bg-secondary text-secondary-foreground hover:border-primary/30 border border-border'
-                }`}
+                } ${!isHost ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
                 {label}
               </button>
