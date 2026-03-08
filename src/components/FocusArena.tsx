@@ -155,10 +155,13 @@ const FocusArena = ({ duration, gameMode, opponentFocused, opponentStats, onLose
               <div className="w-2 h-2 rounded-full bg-success animate-pulse-glow" />
               <span className="text-xs font-mono text-muted-foreground">YOU</span>
             </div>
-            <div className="flex items-center justify-center gap-1 text-success">
+            <div className="flex items-center justify-center gap-1 text-success mb-1">
               <Eye className="w-4 h-4" />
               <span className="text-sm font-semibold">Focused</span>
             </div>
+            {genericStats.score > 0 && (
+              <p className="text-xs font-mono text-primary text-center">Score: {genericStats.score}</p>
+            )}
           </div>
 
           <div className="bg-card border border-border rounded-lg p-4">
@@ -166,10 +169,13 @@ const FocusArena = ({ duration, gameMode, opponentFocused, opponentStats, onLose
               <div className={`w-2 h-2 rounded-full ${opponentFocused ? 'bg-success animate-pulse-glow' : 'bg-destructive'}`} />
               <span className="text-xs font-mono text-muted-foreground">OPPONENT</span>
             </div>
-            <div className={`flex items-center justify-center gap-1 ${opponentFocused ? 'text-success' : 'text-destructive'}`}>
+            <div className={`flex items-center justify-center gap-1 ${opponentFocused ? 'text-success' : 'text-destructive'} mb-1`}>
               {opponentFocused ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
               <span className="text-sm font-semibold">{opponentFocused ? 'Focused' : 'Lost Focus!'}</span>
             </div>
+            {opponentStats && opponentStats.score > 0 && (
+              <p className="text-xs font-mono text-primary text-center">Score: {opponentStats.score}</p>
+            )}
           </div>
         </div>
 
