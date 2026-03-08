@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { GameState, GameResult, GameMode, GameStats } from '@/types/game';
+import { useMultiplayerRoom } from '@/hooks/useMultiplayerRoom';
 import Lobby from '@/components/Lobby';
 import CountdownOverlay from '@/components/CountdownOverlay';
 import FocusArena from '@/components/FocusArena';
@@ -16,38 +17,85 @@ const GameRoom = () => {
   const [result, setResult] = useState<GameResult>(null);
   const [yourTime, setYourTime] = useState(0);
   const [opponentTime, setOpponentTime] = useState(0);
-  const [opponentFocused, setOpponentFocused] = useState(true);
   const [gameStats, setGameStats] = useState<GameStats>({ score: 0, accuracy: 0, avgTime: 0 });
+  const [opponentGameStats, setOpponentGameStats] = useState<GameStats>({ score: 0, accuracy: 0, avgTime: 0 });
   const gameStartRef = useRef<number>(0);
+  const hasEndedRef = useRef(false);
 
-  const [playerCount, setPlayerCount] = useState(1);
-  const [opponentReady, setOpponentReady] = useState(false);
-
-  useEffect(() => {
-    const t = setTimeout(() => setPlayerCount(2), 2000);
-    return () => clearTimeout(t);
+  const handleOpponentLostFocus = useCallback(() => {
+    // Opponent lost focus — we'll handle this in the effect below
   }, []);
 
-  useEffect(() => {
-    if (isReady && playerCount >= 2) {
-      const t = setTimeout(() => setOpponentReady(true), 1500);
-      return () => clearTimeout(t);
-    }
-  }, [isReady, playerCount]);
-
-  useEffect(() => {
-    if (isReady && opponentReady) {
+  const handleGameStartBroadcast = useCallback(() => {
+    // Non-host receives game start signal
+    if (gameState === 'LOBBY' || gameState === 'WAITING') {
       setGameState('COUNTDOWN');
       setCountdownValue(3);
     }
-  }, [isReady, opponentReady]);
+  }, [gameState]);
 
+  const mp = useMultiplayerRoom({
+    roomId: roomId || '',
+    onOpponentLostFocus: handleOpponentLostFocus,
+    onGameStart: handleGameStartBroadcast,
+  });
+
+  // Sync opponent stats as they come in
+  useEffect(() => {
+    if (mp.opponentStats) {
+      setOpponentGameStats(mp.opponentStats);
+    }
+  }, [mp.opponentStats]);
+
+  // When host selects mode/duration, broadcast it
+  const handleSelectMode = useCallback((mode: GameMode) => {
+    setGameMode(mode);
+    mp.broadcastModeSelect(mode);
+  }, [mp]);
+
+  const handleSelectDuration = useCallback((dur: number) => {
+    setDuration(dur);
+    mp.broadcastDurationSelect(dur);
+  }, [mp]);
+
+  // Non-host receives mode/duration from host
+  useEffect(() => {
+    if (!mp.isHost && mp.opponentMode) {
+      setGameMode(mp.opponentMode);
+    }
+  }, [mp.isHost, mp.opponentMode]);
+
+  useEffect(() => {
+    if (!mp.isHost && mp.opponentDuration) {
+      setDuration(mp.opponentDuration);
+    }
+  }, [mp.isHost, mp.opponentDuration]);
+
+  const handleToggleReady = useCallback(() => {
+    setIsReady(prev => {
+      const next = !prev;
+      mp.broadcastReady(next);
+      return next;
+    });
+  }, [mp]);
+
+  // Both ready → host triggers game start
+  useEffect(() => {
+    if (isReady && mp.opponentReady && mp.playerCount >= 2 && mp.isHost) {
+      mp.broadcastGameStart();
+      setGameState('COUNTDOWN');
+      setCountdownValue(3);
+    }
+  }, [isReady, mp.opponentReady, mp.playerCount, mp.isHost, mp]);
+
+  // Countdown logic
   useEffect(() => {
     if (gameState !== 'COUNTDOWN') return;
     if (countdownValue <= 0) {
       const timeout = setTimeout(() => {
         setGameState('ACTIVE');
         gameStartRef.current = Date.now();
+        hasEndedRef.current = false;
       }, 800);
       return () => clearTimeout(timeout);
     }
@@ -55,61 +103,73 @@ const GameRoom = () => {
     return () => clearTimeout(timeout);
   }, [gameState, countdownValue]);
 
+  // When opponent loses focus during active game
   useEffect(() => {
-    if (gameState !== 'ACTIVE') return;
-    const opponentLoseTime = 15000 + Math.random() * (duration * 1000 - 15000);
-    const t = setTimeout(() => {
-      setOpponentFocused(false);
-      setOpponentTime(Math.floor(opponentLoseTime / 1000));
-    }, opponentLoseTime);
-    return () => clearTimeout(t);
-  }, [gameState, duration]);
+    if (!mp.opponentFocused && gameState === 'ACTIVE' && !hasEndedRef.current) {
+      const elapsed = Math.floor((Date.now() - gameStartRef.current) / 1000);
+      setOpponentTime(elapsed);
+      // Give 2 seconds then end as win
+      const t = setTimeout(() => {
+        if (hasEndedRef.current) return;
+        hasEndedRef.current = true;
+        const finalElapsed = Math.floor((Date.now() - gameStartRef.current) / 1000);
+        setYourTime(finalElapsed);
+        setResult('WIN');
+        setGameState('FINISHED');
+      }, 2000);
+      return () => clearTimeout(t);
+    }
+  }, [mp.opponentFocused, gameState]);
 
   const handleLoseFocus = useCallback(() => {
+    if (hasEndedRef.current) return;
+    hasEndedRef.current = true;
+    mp.broadcastFocusLost();
     const elapsed = Math.floor((Date.now() - gameStartRef.current) / 1000);
     setYourTime(elapsed);
-    if (!opponentFocused) {
+    if (!mp.opponentFocused) {
       setResult(elapsed > opponentTime ? 'WIN' : 'LOSE');
     } else {
       setResult('LOSE');
       setOpponentTime(elapsed);
     }
     setGameState('FINISHED');
-  }, [opponentFocused, opponentTime]);
-
-  useEffect(() => {
-    if (!opponentFocused && gameState === 'ACTIVE') {
-      const t = setTimeout(() => {
-        const elapsed = Math.floor((Date.now() - gameStartRef.current) / 1000);
-        setYourTime(elapsed);
-        setResult('WIN');
-        setGameState('FINISHED');
-      }, 2000);
-      return () => clearTimeout(t);
-    }
-  }, [opponentFocused, gameState]);
+  }, [mp, opponentTime]);
 
   const handleTimerEnd = useCallback(() => {
+    if (hasEndedRef.current) return;
+    hasEndedRef.current = true;
     setYourTime(duration);
-    if (opponentFocused) {
+    if (mp.opponentFocused) {
       setOpponentTime(duration);
-      setResult('TIE');
+      // Both survived — compare scores
+      if (opponentGameStats && gameStats.score !== opponentGameStats.score) {
+        setResult(gameStats.score > opponentGameStats.score ? 'WIN' : 'LOSE');
+      } else {
+        setResult('TIE');
+      }
     } else {
       setResult('WIN');
     }
     setGameState('FINISHED');
-  }, [duration, opponentFocused]);
+  }, [duration, mp.opponentFocused, gameStats, opponentGameStats]);
+
+  const handleGameStats = useCallback((stats: GameStats) => {
+    setGameStats(stats);
+    mp.broadcastGameStats(stats);
+  }, [mp]);
 
   const handleRematch = () => {
     setGameState('LOBBY');
     setIsReady(false);
-    setOpponentReady(false);
     setResult(null);
     setYourTime(0);
     setOpponentTime(0);
-    setOpponentFocused(true);
     setCountdownValue(3);
     setGameStats({ score: 0, accuracy: 0, avgTime: 0 });
+    setOpponentGameStats({ score: 0, accuracy: 0, avgTime: 0 });
+    hasEndedRef.current = false;
+    mp.resetOpponent();
   };
 
   if (!roomId) return null;
@@ -120,14 +180,15 @@ const GameRoom = () => {
       return (
         <Lobby
           roomId={roomId}
-          playerCount={playerCount}
+          playerCount={mp.playerCount}
           isReady={isReady}
-          opponentReady={opponentReady}
+          opponentReady={mp.opponentReady}
           selectedDuration={duration}
           selectedMode={gameMode}
-          onToggleReady={() => setIsReady(prev => !prev)}
-          onSelectDuration={setDuration}
-          onSelectMode={setGameMode}
+          isHost={mp.isHost}
+          onToggleReady={handleToggleReady}
+          onSelectDuration={handleSelectDuration}
+          onSelectMode={handleSelectMode}
         />
       );
 
@@ -139,10 +200,11 @@ const GameRoom = () => {
         <FocusArena
           duration={duration}
           gameMode={gameMode}
-          opponentFocused={opponentFocused}
+          opponentFocused={mp.opponentFocused}
+          opponentStats={mp.opponentStats}
           onLoseFocus={handleLoseFocus}
           onTimerEnd={handleTimerEnd}
-          onGameStats={setGameStats}
+          onGameStats={handleGameStats}
         />
       );
 
@@ -154,6 +216,7 @@ const GameRoom = () => {
           opponentTime={opponentTime}
           onRematch={handleRematch}
           gameStats={gameStats}
+          opponentStats={opponentGameStats}
           gameMode={gameMode}
         />
       );
