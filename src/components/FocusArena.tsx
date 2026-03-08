@@ -15,6 +15,7 @@ interface FocusArenaProps {
   duration: number;
   gameMode: GameMode;
   opponentFocused: boolean;
+  opponentStats?: GameStats | null;
   onLoseFocus: () => void;
   onTimerEnd: () => void;
   onGameStats?: (stats: GameStats) => void;
