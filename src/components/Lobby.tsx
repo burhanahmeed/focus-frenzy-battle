@@ -77,7 +77,7 @@ const Lobby = ({ roomId, playerCount, isReady, opponentReady, selectedDuration, 
           <div className="space-y-3">
             <div className="flex items-center gap-3 px-3 py-2 rounded-md bg-secondary/50">
               <div className="w-2 h-2 rounded-full bg-success animate-pulse-glow" />
-              <span className="text-sm font-medium">You</span>
+              <span className="text-sm font-medium">You {isHost && <span className="text-[10px] font-mono text-primary ml-1">(HOST)</span>}</span>
               {isReady && <span className="ml-auto text-xs font-mono text-success">READY</span>}
             </div>
             <div className="flex items-center gap-3 px-3 py-2 rounded-md bg-secondary/50">
