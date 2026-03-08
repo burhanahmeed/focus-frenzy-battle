@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { GameState, GameResult } from '@/types/game';
+import { GameState, GameResult, ReactionStats } from '@/types/game';
 import Lobby from '@/components/Lobby';
 import CountdownOverlay from '@/components/CountdownOverlay';
 import FocusArena from '@/components/FocusArena';
@@ -16,9 +16,9 @@ const GameRoom = () => {
   const [yourTime, setYourTime] = useState(0);
   const [opponentTime, setOpponentTime] = useState(0);
   const [opponentFocused, setOpponentFocused] = useState(true);
+  const [reactionStats, setReactionStats] = useState<ReactionStats>({ hits: 0, misses: 0, avgReactionTime: 0 });
   const gameStartRef = useRef<number>(0);
 
-  // Simulate opponent joining after 2s (MVP without real-time backend)
   const [playerCount, setPlayerCount] = useState(1);
   const [opponentReady, setOpponentReady] = useState(false);
 
@@ -27,10 +27,8 @@ const GameRoom = () => {
     return () => clearTimeout(t);
   }, []);
 
-  // When both ready, start countdown
   useEffect(() => {
     if (isReady && playerCount >= 2) {
-      // Simulate opponent readying up shortly after you
       const t = setTimeout(() => {
         setOpponentReady(true);
       }, 1500);
@@ -45,7 +43,6 @@ const GameRoom = () => {
     }
   }, [isReady, opponentReady]);
 
-  // Countdown logic
   useEffect(() => {
     if (gameState !== 'COUNTDOWN') return;
 
@@ -64,7 +61,6 @@ const GameRoom = () => {
     return () => clearTimeout(timeout);
   }, [gameState, countdownValue]);
 
-  // Simulate opponent losing focus at a random time
   useEffect(() => {
     if (gameState !== 'ACTIVE') return;
     const opponentLoseTime = 15000 + Math.random() * (duration * 1000 - 15000);
@@ -80,19 +76,16 @@ const GameRoom = () => {
     const elapsed = Math.floor((Date.now() - gameStartRef.current) / 1000);
     setYourTime(elapsed);
     if (!opponentFocused) {
-      // Opponent already lost, you lost too => compare times
       setResult(elapsed > opponentTime ? 'WIN' : 'LOSE');
     } else {
       setResult('LOSE');
-      setOpponentTime(elapsed); // opponent was still going
+      setOpponentTime(elapsed);
     }
     setGameState('FINISHED');
   }, [opponentFocused, opponentTime]);
 
-  // When opponent loses and game is still active, player wins
   useEffect(() => {
     if (!opponentFocused && gameState === 'ACTIVE') {
-      // Give a brief moment then declare win
       const t = setTimeout(() => {
         const elapsed = Math.floor((Date.now() - gameStartRef.current) / 1000);
         setYourTime(elapsed);
@@ -124,6 +117,7 @@ const GameRoom = () => {
     setOpponentTime(0);
     setOpponentFocused(true);
     setCountdownValue(3);
+    setReactionStats({ hits: 0, misses: 0, avgReactionTime: 0 });
   };
 
   if (!roomId) return null;
@@ -153,6 +147,7 @@ const GameRoom = () => {
           opponentFocused={opponentFocused}
           onLoseFocus={handleLoseFocus}
           onTimerEnd={handleTimerEnd}
+          onReactionStats={setReactionStats}
         />
       );
 
@@ -163,6 +158,7 @@ const GameRoom = () => {
           yourTime={yourTime}
           opponentTime={opponentTime}
           onRematch={handleRematch}
+          reactionStats={reactionStats}
         />
       );
 
