@@ -10,6 +10,7 @@ interface LobbyProps {
   opponentReady: boolean;
   selectedDuration: number;
   selectedMode: GameMode;
+  isHost: boolean;
   onToggleReady: () => void;
   onSelectDuration: (seconds: number) => void;
   onSelectMode: (mode: GameMode) => void;
