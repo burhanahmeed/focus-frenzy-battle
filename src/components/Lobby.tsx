@@ -31,7 +31,7 @@ const MODE_ICONS: Record<GameMode, React.ReactNode> = {
   wordle: <Grid3x3 className="w-5 h-5" />,
 };
 
-const Lobby = ({ roomId, playerCount, isReady, opponentReady, selectedDuration, selectedMode, onToggleReady, onSelectDuration, onSelectMode }: LobbyProps) => {
+const Lobby = ({ roomId, playerCount, isReady, opponentReady, selectedDuration, selectedMode, isHost, onToggleReady, onSelectDuration, onSelectMode }: LobbyProps) => {
   const [copied, setCopied] = useState(false);
 
   const copyCode = () => {

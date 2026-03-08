@@ -14,7 +14,7 @@ interface ResultScreenProps {
   gameMode?: GameMode;
 }
 
-const ResultScreen = ({ result, yourTime, opponentTime, onRematch, gameStats, gameMode }: ResultScreenProps) => {
+const ResultScreen = ({ result, yourTime, opponentTime, onRematch, gameStats, opponentStats, gameMode }: ResultScreenProps) => {
   const navigate = useNavigate();
 
   const config = {

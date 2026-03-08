@@ -21,7 +21,7 @@ interface FocusArenaProps {
   onGameStats?: (stats: GameStats) => void;
 }
 
-const FocusArena = ({ duration, gameMode, opponentFocused, onLoseFocus, onTimerEnd, onGameStats }: FocusArenaProps) => {
+const FocusArena = ({ duration, gameMode, opponentFocused, opponentStats, onLoseFocus, onTimerEnd, onGameStats }: FocusArenaProps) => {
   const [elapsed, setElapsed] = useState(0);
   const { isVisible, leftCount } = usePageVisibility();
   const hasTriggeredLoss = useRef(false);
