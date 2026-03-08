@@ -10,6 +10,7 @@ interface ResultScreenProps {
   opponentTime: number;
   onRematch: () => void;
   gameStats?: GameStats;
+  opponentStats?: GameStats;
   gameMode?: GameMode;
 }
 
