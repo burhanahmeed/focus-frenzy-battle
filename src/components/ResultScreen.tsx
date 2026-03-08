@@ -10,10 +10,11 @@ interface ResultScreenProps {
   opponentTime: number;
   onRematch: () => void;
   gameStats?: GameStats;
+  opponentStats?: GameStats;
   gameMode?: GameMode;
 }
 
-const ResultScreen = ({ result, yourTime, opponentTime, onRematch, gameStats, gameMode }: ResultScreenProps) => {
+const ResultScreen = ({ result, yourTime, opponentTime, onRematch, gameStats, opponentStats, gameMode }: ResultScreenProps) => {
   const navigate = useNavigate();
 
   const config = {
@@ -87,43 +88,61 @@ const ResultScreen = ({ result, yourTime, opponentTime, onRematch, gameStats, ga
           </div>
         </div>
 
-        {/* Game Stats */}
-        {gameStats && gameStats.score > 0 && (
+        {/* Game Stats - Side by side comparison */}
+        {(gameStats?.score || opponentStats?.score) ? (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
             className={`bg-card border ${c.borderColor} rounded-lg p-5 mb-6`}
           >
-            <div className="flex items-center justify-center gap-1.5 mb-3">
+            <div className="flex items-center justify-center gap-1.5 mb-4">
               <BarChart3 className="w-3.5 h-3.5 text-primary" />
               <span className="text-xs font-mono text-muted-foreground tracking-wider">{modeLabel.toUpperCase()} STATS</span>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <Target className="w-3 h-3 text-primary" />
-                </div>
-                <p className="font-mono text-xl font-bold text-foreground">{gameStats.score}</p>
-                <p className="text-[10px] font-mono text-muted-foreground">SCORE</p>
+            
+            {/* Header */}
+            <div className="grid grid-cols-3 gap-2 mb-2">
+              <div />
+              <p className="text-[10px] font-mono text-muted-foreground text-center">YOU</p>
+              <p className="text-[10px] font-mono text-muted-foreground text-center">OPPONENT</p>
+            </div>
+            
+            {/* Score row */}
+            <div className="grid grid-cols-3 gap-2 mb-2 items-center">
+              <div className="flex items-center gap-1">
+                <Target className="w-3 h-3 text-primary" />
+                <span className="text-[10px] font-mono text-muted-foreground">SCORE</span>
               </div>
-              <div>
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <Zap className="w-3 h-3 text-warning" />
-                </div>
-                <p className="font-mono text-xl font-bold text-foreground">{gameStats.avgTime}ms</p>
-                <p className="text-[10px] font-mono text-muted-foreground">AVG TIME</p>
+              <p className={`font-mono text-lg font-bold text-center ${gameStats && opponentStats && gameStats.score > opponentStats.score ? 'text-success' : 'text-foreground'}`}>
+                {gameStats?.score || 0}
+              </p>
+              <p className={`font-mono text-lg font-bold text-center ${opponentStats && gameStats && opponentStats.score > gameStats.score ? 'text-success' : 'text-foreground'}`}>
+                {opponentStats?.score || 0}
+              </p>
+            </div>
+
+            {/* Avg Time row */}
+            <div className="grid grid-cols-3 gap-2 mb-2 items-center">
+              <div className="flex items-center gap-1">
+                <Zap className="w-3 h-3 text-warning" />
+                <span className="text-[10px] font-mono text-muted-foreground">AVG</span>
               </div>
-              <div>
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <BarChart3 className="w-3 h-3 text-success" />
-                </div>
-                <p className="font-mono text-xl font-bold text-foreground">{gameStats.accuracy}%</p>
-                <p className="text-[10px] font-mono text-muted-foreground">ACCURACY</p>
+              <p className="font-mono text-lg font-bold text-foreground text-center">{gameStats?.avgTime || 0}ms</p>
+              <p className="font-mono text-lg font-bold text-foreground text-center">{opponentStats?.avgTime || 0}ms</p>
+            </div>
+
+            {/* Accuracy row */}
+            <div className="grid grid-cols-3 gap-2 items-center">
+              <div className="flex items-center gap-1">
+                <BarChart3 className="w-3 h-3 text-success" />
+                <span className="text-[10px] font-mono text-muted-foreground">ACC</span>
               </div>
+              <p className="font-mono text-lg font-bold text-foreground text-center">{gameStats?.accuracy || 0}%</p>
+              <p className="font-mono text-lg font-bold text-foreground text-center">{opponentStats?.accuracy || 0}%</p>
             </div>
           </motion.div>
-        )}
+        ) : null}
 
         {/* Actions */}
         <div className="flex gap-3">

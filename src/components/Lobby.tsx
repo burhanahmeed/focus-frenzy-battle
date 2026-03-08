@@ -10,6 +10,7 @@ interface LobbyProps {
   opponentReady: boolean;
   selectedDuration: number;
   selectedMode: GameMode;
+  isHost: boolean;
   onToggleReady: () => void;
   onSelectDuration: (seconds: number) => void;
   onSelectMode: (mode: GameMode) => void;
@@ -30,7 +31,7 @@ const MODE_ICONS: Record<GameMode, React.ReactNode> = {
   wordle: <Grid3x3 className="w-5 h-5" />,
 };
 
-const Lobby = ({ roomId, playerCount, isReady, opponentReady, selectedDuration, selectedMode, onToggleReady, onSelectDuration, onSelectMode }: LobbyProps) => {
+const Lobby = ({ roomId, playerCount, isReady, opponentReady, selectedDuration, selectedMode, isHost, onToggleReady, onSelectDuration, onSelectMode }: LobbyProps) => {
   const [copied, setCopied] = useState(false);
 
   const copyCode = () => {
@@ -76,7 +77,7 @@ const Lobby = ({ roomId, playerCount, isReady, opponentReady, selectedDuration, 
           <div className="space-y-3">
             <div className="flex items-center gap-3 px-3 py-2 rounded-md bg-secondary/50">
               <div className="w-2 h-2 rounded-full bg-success animate-pulse-glow" />
-              <span className="text-sm font-medium">You</span>
+              <span className="text-sm font-medium">You {isHost && <span className="text-[10px] font-mono text-primary ml-1">(HOST)</span>}</span>
               {isReady && <span className="ml-auto text-xs font-mono text-success">READY</span>}
             </div>
             <div className="flex items-center gap-3 px-3 py-2 rounded-md bg-secondary/50">
@@ -101,17 +102,19 @@ const Lobby = ({ roomId, playerCount, isReady, opponentReady, selectedDuration, 
           <div className="flex items-center gap-2 mb-3">
             <Crosshair className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground font-mono">GAME MODE</span>
+            {!isHost && <span className="text-[10px] font-mono text-muted-foreground/60 ml-auto">Host picks</span>}
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {GAME_MODES.map((mode) => (
               <button
                 key={mode.id}
-                onClick={() => onSelectMode(mode.id)}
+                onClick={() => isHost ? onSelectMode(mode.id) : undefined}
+                disabled={!isHost}
                 className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-lg text-center transition-all ${
                   selectedMode === mode.id
                     ? 'bg-primary text-primary-foreground glow-primary'
                     : 'bg-secondary text-secondary-foreground hover:border-primary/30 border border-border'
-                }`}
+                } ${!isHost ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
                 {MODE_ICONS[mode.id]}
                 <span className="text-xs font-mono font-semibold">{mode.label}</span>
@@ -130,17 +133,19 @@ const Lobby = ({ roomId, playerCount, isReady, opponentReady, selectedDuration, 
           <div className="flex items-center gap-2 mb-3">
             <Clock className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground font-mono">DURATION</span>
+            {!isHost && <span className="text-[10px] font-mono text-muted-foreground/60 ml-auto">Host picks</span>}
           </div>
           <div className="grid grid-cols-4 gap-2">
             {DURATIONS.map(({ label, value }) => (
               <button
                 key={value}
-                onClick={() => onSelectDuration(value)}
+                onClick={() => isHost ? onSelectDuration(value) : undefined}
+                disabled={!isHost}
                 className={`py-2 px-3 rounded-md text-sm font-mono transition-all ${
                   selectedDuration === value
                     ? 'bg-primary text-primary-foreground glow-primary'
                     : 'bg-secondary text-secondary-foreground hover:border-primary/30 border border-border'
-                }`}
+                } ${!isHost ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
                 {label}
               </button>
