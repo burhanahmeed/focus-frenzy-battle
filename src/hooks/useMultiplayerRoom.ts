@@ -50,8 +50,15 @@ export function useMultiplayerRoom({ roomId, onOpponentLostFocus, onGameStart }:
       const playerIds = Object.keys(presenceState);
       playersRef.current = new Set(playerIds);
       const count = playerIds.length;
-      const sorted = [...playerIds].sort();
-      const host = sorted[0] === playerIdRef.current;
+      
+      // Determine host based on who joined first (earliest joinedAt timestamp)
+      const playersWithTimestamps = playerIds.map(id => ({
+        id,
+        joinedAt: presenceState[id]?.[0]?.joinedAt || 0
+      }));
+      const sortedByJoinTime = playersWithTimestamps.sort((a, b) => a.joinedAt - b.joinedAt);
+      const host = sortedByJoinTime[0]?.id === playerIdRef.current;
+      
       isHostRef.current = host;
       setState(s => ({ ...s, playerCount: count, isHost: host }));
     });
@@ -93,7 +100,7 @@ export function useMultiplayerRoom({ roomId, onOpponentLostFocus, onGameStart }:
 
     channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        await channel.track({ online: true });
+        await channel.track({ online: true, joinedAt: Date.now() });
       }
     });
 
