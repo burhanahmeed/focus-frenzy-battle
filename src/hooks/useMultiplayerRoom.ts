@@ -24,7 +24,8 @@ interface UseMultiplayerRoomOptions {
 export function useMultiplayerRoom({ roomId, onOpponentLostFocus, onGameStart }: UseMultiplayerRoomOptions) {
   const playerIdRef = useRef(generatePlayerId());
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const [state, setState] = useState<MultiplayerState>({
+  const onOpponentLostFocusRef = useRef(onOpponentLostFocus);
+  const onGameStartRef = useRef(onGameStart);
     playerId: playerIdRef.current,
     playerCount: 0,
     isHost: false,
