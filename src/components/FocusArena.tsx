@@ -46,12 +46,15 @@ const FocusArena = ({ duration, gameMode, opponentFocused, opponentStats, onLose
     onGameStats?.(stats);
   };
 
+  const onTimerEndRef = useRef(onTimerEnd);
+  useEffect(() => { onTimerEndRef.current = onTimerEnd; }, [onTimerEnd]);
+
   useEffect(() => {
     intervalRef.current = setInterval(() => {
       setElapsed(prev => {
         if (prev + 1 >= duration) {
           if (intervalRef.current) clearInterval(intervalRef.current);
-          onTimerEnd();
+          onTimerEndRef.current();
           return duration;
         }
         return prev + 1;
@@ -61,7 +64,7 @@ const FocusArena = ({ duration, gameMode, opponentFocused, opponentStats, onLose
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [duration, onTimerEnd]);
+  }, [duration]);
 
   useEffect(() => {
     if (!isVisible && !hasTriggeredLoss.current && leftCount > 0) {

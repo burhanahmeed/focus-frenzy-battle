@@ -24,6 +24,8 @@ interface UseMultiplayerRoomOptions {
 export function useMultiplayerRoom({ roomId, onOpponentLostFocus, onGameStart }: UseMultiplayerRoomOptions) {
   const playerIdRef = useRef(generatePlayerId());
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const onOpponentLostFocusRef = useRef(onOpponentLostFocus);
+  const onGameStartRef = useRef(onGameStart);
   const [state, setState] = useState<MultiplayerState>({
     playerId: playerIdRef.current,
     playerCount: 0,
@@ -34,6 +36,9 @@ export function useMultiplayerRoom({ roomId, onOpponentLostFocus, onGameStart }:
     opponentMode: null,
     opponentDuration: null,
   });
+
+  useEffect(() => { onOpponentLostFocusRef.current = onOpponentLostFocus; }, [onOpponentLostFocus]);
+  useEffect(() => { onGameStartRef.current = onGameStart; }, [onGameStart]);
 
   const isHostRef = useRef(false);
   const playersRef = useRef<Set<string>>(new Set());
@@ -85,7 +90,7 @@ export function useMultiplayerRoom({ roomId, onOpponentLostFocus, onGameStart }:
     channel.on('broadcast', { event: 'focus_lost' }, ({ payload }) => {
       if (payload.playerId !== playerIdRef.current) {
         setState(s => ({ ...s, opponentFocused: false }));
-        onOpponentLostFocus?.();
+        onOpponentLostFocusRef.current?.();
       }
     });
 
@@ -96,7 +101,7 @@ export function useMultiplayerRoom({ roomId, onOpponentLostFocus, onGameStart }:
     });
 
     channel.on('broadcast', { event: 'game_start' }, () => {
-      onGameStart?.();
+      onGameStartRef.current?.();
     });
 
     channel.subscribe(async (status) => {
@@ -109,7 +114,7 @@ export function useMultiplayerRoom({ roomId, onOpponentLostFocus, onGameStart }:
       channel.unsubscribe();
       channelRef.current = null;
     };
-  }, [roomId, onOpponentLostFocus, onGameStart]);
+  }, [roomId]);
 
   const broadcastReady = useCallback((ready: boolean) => {
     channelRef.current?.send({
