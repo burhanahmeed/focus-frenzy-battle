@@ -54,14 +54,9 @@ export function useMultiplayerRoom({ roomId, onOpponentLostFocus, onGameStart }:
       
       playersRef.current = new Set(playerIds);
       
-      let host = isHostRef.current; // Keep current host by default
-      
-      // Only change host when players leave (count decreases) or when room is empty
-      if (currentCount < previousCount || previousCount === 0) {
-        // Determine host as the player with the smallest ID among remaining players
-        const sorted = [...playerIds].sort();
-        host = sorted[0] === playerIdRef.current;
-      }
+      // Determine host as the player with the smallest ID (stable across all clients)
+      const sorted = [...playerIds].sort();
+      const host = sorted[0] === playerIdRef.current;
       
       isHostRef.current = host;
       previousPlayerCountRef.current = currentCount;
