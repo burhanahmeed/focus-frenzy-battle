@@ -114,7 +114,7 @@ export function useMultiplayerRoom({ roomId, onOpponentLostFocus, onGameStart }:
       channel.unsubscribe();
       channelRef.current = null;
     };
-  }, [roomId, onOpponentLostFocus, onGameStart]);
+  }, [roomId]);
 
   const broadcastReady = useCallback((ready: boolean) => {
     channelRef.current?.send({
