@@ -90,7 +90,7 @@ export function useMultiplayerRoom({ roomId, onOpponentLostFocus, onGameStart }:
     channel.on('broadcast', { event: 'focus_lost' }, ({ payload }) => {
       if (payload.playerId !== playerIdRef.current) {
         setState(s => ({ ...s, opponentFocused: false }));
-        onOpponentLostFocus?.();
+        onOpponentLostFocusRef.current?.();
       }
     });
 
