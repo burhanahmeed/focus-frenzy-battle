@@ -101,7 +101,7 @@ export function useMultiplayerRoom({ roomId, onOpponentLostFocus, onGameStart }:
     });
 
     channel.on('broadcast', { event: 'game_start' }, () => {
-      onGameStart?.();
+      onGameStartRef.current?.();
     });
 
     channel.subscribe(async (status) => {
