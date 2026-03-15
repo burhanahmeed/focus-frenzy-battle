@@ -37,6 +37,7 @@ export function useMultiplayerRoom({ roomId, onOpponentLostFocus, onGameStart }:
 
   const isHostRef = useRef(false);
   const playersRef = useRef<Set<string>>(new Set());
+  const previousPlayerCountRef = useRef(0);
 
   useEffect(() => {
     const channel = supabase.channel(`room:${roomId}`, {
@@ -48,19 +49,24 @@ export function useMultiplayerRoom({ roomId, onOpponentLostFocus, onGameStart }:
     channel.on('presence', { event: 'sync' }, () => {
       const presenceState = channel.presenceState();
       const playerIds = Object.keys(presenceState);
-      playersRef.current = new Set(playerIds);
-      const count = playerIds.length;
+      const currentCount = playerIds.length;
+      const previousCount = previousPlayerCountRef.current;
       
-      // Determine host based on who joined first (earliest joinedAt timestamp)
-      const playersWithTimestamps = playerIds.map(id => ({
-        id,
-        joinedAt: presenceState[id]?.[0]?.joinedAt || 0
-      }));
-      const sortedByJoinTime = playersWithTimestamps.sort((a, b) => a.joinedAt - b.joinedAt);
-      const host = sortedByJoinTime[0]?.id === playerIdRef.current;
+      playersRef.current = new Set(playerIds);
+      
+      let host = isHostRef.current; // Keep current host by default
+      
+      // Only change host when players leave (count decreases) or when room is empty
+      if (currentCount < previousCount || previousCount === 0) {
+        // Determine host as the player with the smallest ID among remaining players
+        const sorted = [...playerIds].sort();
+        host = sorted[0] === playerIdRef.current;
+      }
       
       isHostRef.current = host;
-      setState(s => ({ ...s, playerCount: count, isHost: host }));
+      previousPlayerCountRef.current = currentCount;
+      
+      setState(s => ({ ...s, playerCount: currentCount, isHost: host }));
     });
 
     channel.on('broadcast', { event: 'ready' }, ({ payload }) => {
@@ -100,7 +106,7 @@ export function useMultiplayerRoom({ roomId, onOpponentLostFocus, onGameStart }:
 
     channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        await channel.track({ online: true, joinedAt: Date.now() });
+        await channel.track({ online: true });
       }
     });
 
