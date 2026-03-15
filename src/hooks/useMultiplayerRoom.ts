@@ -26,6 +26,7 @@ export function useMultiplayerRoom({ roomId, onOpponentLostFocus, onGameStart }:
   const channelRef = useRef<RealtimeChannel | null>(null);
   const onOpponentLostFocusRef = useRef(onOpponentLostFocus);
   const onGameStartRef = useRef(onGameStart);
+  const [state, setState] = useState<MultiplayerState>({
     playerId: playerIdRef.current,
     playerCount: 0,
     isHost: false,
@@ -35,6 +36,9 @@ export function useMultiplayerRoom({ roomId, onOpponentLostFocus, onGameStart }:
     opponentMode: null,
     opponentDuration: null,
   });
+
+  useEffect(() => { onOpponentLostFocusRef.current = onOpponentLostFocus; }, [onOpponentLostFocus]);
+  useEffect(() => { onGameStartRef.current = onGameStart; }, [onGameStart]);
 
   const isHostRef = useRef(false);
   const playersRef = useRef<Set<string>>(new Set());
